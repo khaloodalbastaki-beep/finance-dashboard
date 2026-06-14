@@ -89,6 +89,11 @@
       <div class="stat"><div class="k">This month</div><div class="v" id="t-month"></div></div>
     </div>
 
+    <div class="section hidden" id="s-accounts">
+      <h2>Accounts <span class="tag" id="net-liquid"></span></h2>
+      <div class="card" id="accounts"></div>
+    </div>
+
     <div class="section hidden" id="s-budgets">
       <h2>Budgets</h2>
       <div class="card" id="budgets"></div>
@@ -155,6 +160,20 @@ function render(d){
   $('t-today').textContent = money(d.totals.today, d.currency);
   $('t-week').textContent  = money(d.totals.week,  d.currency);
   $('t-month').textContent = money(d.totals.month, d.currency);
+
+  // Accounts
+  const accts = d.accounts || [];
+  if(accts.length){
+    $('s-accounts').classList.remove('hidden');
+    $('net-liquid').textContent = money(d.net_liquid, d.currency);
+    const icon = {bank:'🏦', cash:'💵', virtual:'🗂️', credit:'💳'};
+    $('accounts').innerHTML = accts.map(a=>`
+      <div class="row">
+        <div><div class="m">${icon[a.type]||'•'} ${esc(a.name)}</div>
+          <div class="d">${esc(a.type)}${a.institution?' · '+esc(a.institution):''} · ${a.txns} txns</div></div>
+        <div class="a" style="color:${a.balance<0?'var(--bad)':'var(--text)'}">${money(a.balance,a.currency)}</div>
+      </div>`).join('');
+  } else { $('s-accounts').classList.add('hidden'); }
 
   // Budgets
   const buds = d.budgets || [];
