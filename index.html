@@ -96,8 +96,8 @@
     <!-- HOME -->
     <section class="panel on" id="p-home">
       <div class="hero">
-        <div class="lbl">Liquid balance</div>
-        <div class="big" id="hero-liquid">—</div>
+        <div class="lbl">Net worth</div>
+        <div class="big" id="hero-net">—</div>
         <div class="sub" id="hero-sub"></div>
       </div>
       <div class="cards3">
@@ -114,6 +114,8 @@
     <section class="panel" id="p-accounts">
       <div class="hero"><div class="lbl">Net liquid</div><div class="big" id="acc-liquid">—</div></div>
       <h2 class="sec">All accounts</h2><div class="card" id="accounts"></div>
+      <h2 class="sec hidden" id="s-inv">Investments <span class="tag" id="inv-val"></span></h2>
+      <div class="card hidden" id="investments"></div>
     </section>
 
     <!-- SPENDING -->
@@ -178,10 +180,27 @@ function txnRows(list){
 }
 function render(d){
   DATA=d;const c=d.currency;
-  $('hero-liquid').textContent=money(d.net_liquid,c);
+  const inv=d.investments;
+  $('hero-net').textContent=money(d.net_worth!=null?d.net_worth:d.net_liquid,c);
   const accts=d.accounts||[];
-  $('hero-sub').textContent=accts.length?accts.length+' account'+(accts.length>1?'s':''):'No accounts yet';
+  let sub='Liquid '+money(d.net_liquid,c);
+  if(inv) sub+=' · Investments '+money(inv.value,inv.currency||c);
+  $('hero-sub').textContent=sub;
   $('acc-liquid').textContent=money(d.net_liquid,c);
+  // investments
+  if(inv){
+    $('s-inv').classList.remove('hidden');$('investments').classList.remove('hidden');
+    const upc=inv.unrealized>=0?'var(--good)':'var(--bad)';
+    $('inv-val').textContent=money(inv.value,inv.currency||c);
+    let h=`<div class="row"><div class="rowL"><div class="ava">📈</div><div class="t"><div class="m">${esc(inv.source||'Portfolio')}</div>
+      <div class="d">${inv.count} holdings${inv.as_of?' · as of '+esc(inv.as_of):''}</div></div></div>
+      <div class="a">${money(inv.value,inv.currency||c)}</div></div>`;
+    h+=`<div class="row"><div class="rowL"><div class="ava">${inv.unrealized>=0?'🟢':'🔴'}</div><div class="t"><div class="m">Unrealized P/L</div><div class="d">on current holdings</div></div></div>
+      <div class="a" style="color:${upc}">${inv.unrealized>=0?'+':''}${money(inv.unrealized,inv.currency||c)} (${inv.unrealized_pct>=0?'+':''}${inv.unrealized_pct}%)</div></div>`;
+    (inv.holdings||[]).slice(0,6).forEach(s=>{h+=`<div class="row"><div class="rowL"><div class="t"><div class="m">${esc(s.symbol)}</div><div class="d">${s.qty} @ ${esc(String(s.last_price))}</div></div></div>
+      <div class="a">${money(s.mkt_val,inv.currency||c)}</div></div>`;});
+    $('investments').innerHTML=h;
+  }else{$('s-inv').classList.add('hidden');$('investments').classList.add('hidden');}
   $('t-today').textContent=money(d.totals.today,c);
   $('t-week').textContent=money(d.totals.week,c);
   $('t-month').textContent=money(d.totals.month,c);
