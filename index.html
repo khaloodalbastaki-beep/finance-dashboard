@@ -170,12 +170,31 @@ async function loadAndDecrypt(p){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 function budColor(pct,warn){return pct>=100?'var(--bad)':pct>=(warn||80)?'var(--warn)':'var(--good)';}
+function acctRow(x){
+  return `<div class="row"><div class="rowL"><div class="ava">${ICON[x.type]||'•'}</div>
+    <div class="t"><div class="m">${esc(x.name)}</div><div class="d">${esc(x.type)}${x.institution?' · '+esc(x.institution):''}</div></div></div>
+    <div class="a" style="color:${x.balance<0?'var(--bad)':'var(--text)'}">${money(x.balance,x.currency)}</div></div>`;
+}
 function accountRows(d){
   const a=d.accounts||[];
   if(!a.length) return '<div class="empty">No accounts yet. Add one in Telegram: /addaccount</div>';
-  return a.map(x=>`<div class="row"><div class="rowL"><div class="ava">${ICON[x.type]||'•'}</div>
-    <div class="t"><div class="m">${esc(x.name)}</div><div class="d">${esc(x.type)}${x.institution?' · '+esc(x.institution):''}</div></div></div>
-    <div class="a" style="color:${x.balance<0?'var(--bad)':'var(--text)'}">${money(x.balance,x.currency)}</div></div>`).join('');
+  const envs=a.filter(x=>x.is_envelope), reals=a.filter(x=>!x.is_envelope);
+  const byParent={};envs.forEach(e=>{(byParent[e.parent_account_id]=byParent[e.parent_account_id]||[]).push(e);});
+  let html='';
+  reals.forEach(x=>{
+    html+=acctRow(x);
+    const kids=byParent[x.id]||[];delete byParent[x.id];
+    if(kids.length){
+      const earmarked=kids.reduce((s,k)=>s+(k.balance||0),0);
+      const avail=(x.balance||0)-earmarked;
+      html+=`<div class="d" style="margin:-4px 12px 4px 56px">earmarked ${money(earmarked,x.currency)} · available ${money(avail,x.currency)}</div>`;
+      kids.forEach(k=>{html+=`<div class="row" style="padding-left:44px"><div class="rowL"><div class="ava">🧰</div>
+        <div class="t"><div class="m">${esc(k.name)}</div><div class="d">envelope</div></div></div>
+        <div class="a">${money(k.balance,k.currency)}</div></div>`;});
+    }
+  });
+  Object.values(byParent).flat().forEach(e=>{html+=acctRow(e);}); // orphan envelopes, if any
+  return html;
 }
 function txnRows(list){
   if(!list.length) return '<div class="empty">No transactions.</div>';
