@@ -124,6 +124,10 @@
       <h2 class="sec">This month by category</h2><div class="card" id="cats"></div>
       <h2 class="sec hidden" id="s-subs">Subscriptions <span class="tag" id="subs-total"></span></h2>
       <div class="card hidden" id="subs"></div>
+      <h2 class="sec hidden" id="s-recurring">Recurring money <span class="tag" id="rec-net"></span></h2>
+      <div class="card hidden" id="recurring"></div>
+      <h2 class="sec hidden" id="s-upcoming">Upcoming</h2>
+      <div class="card hidden" id="upcoming"></div>
     </section>
 
     <!-- ACTIVITY -->
@@ -225,6 +229,18 @@ function render(d){
   if(subs.length){$('s-subs').classList.remove('hidden');$('subs').classList.remove('hidden');
     $('subs-total').textContent=money(d.subscriptions_total,c)+'/mo';
     $('subs').innerHTML=subs.map(s=>`<div class="row"><div class="rowL"><div class="ava">🔁</div><div class="t"><div class="m">${esc(s.merchant)}</div><div class="d">${esc(s.category)} · last ${esc(s.last)}</div></div></div><div class="a">${money(s.amount,s.currency)}</div></div>`).join('');}
+  // recurring money (declared commitments + forecast)
+  const rec=d.recurring;
+  if(rec&&rec.count>0){
+    $('s-recurring').classList.remove('hidden');$('recurring').classList.remove('hidden');
+    $('rec-net').textContent=(rec.net_monthly>=0?'+':'')+money(rec.net_monthly,c)+'/mo';
+    const grp=(title,arr,sign)=>(arr&&arr.length)?`<div class="d" style="margin:10px 12px 2px">${title}</div>`+arr.map(r=>`<div class="row"><div class="rowL"><div class="ava">${sign==='+'?'💰':'🔁'}</div><div class="t"><div class="m">${esc(r.name)}${r.auto_post?' <span class="pill">auto</span>':''}</div><div class="d">${esc(r.cadence)} · ${r.overdue?'⚠️ overdue':'in '+r.days_until_due+'d'}</div></div></div><div class="a" style="color:${sign==='+'?'var(--good)':'var(--text)'}">${sign}${money(r.amount,r.currency)}</div></div>`).join(''):'';
+    $('recurring').innerHTML=`<div class="row"><div class="rowL"><div class="t"><div class="m">Monthly recurring</div><div class="d">−${money(rec.monthly_outflow,c)} out · +${money(rec.monthly_inflow,c)} in</div></div></div><div class="a" style="color:${rec.net_monthly>=0?'var(--good)':'var(--bad)'}">${rec.net_monthly>=0?'+':''}${money(rec.net_monthly,c)}</div></div>`+grp('Income',rec.income,'+')+grp('Subscriptions',rec.subscriptions,'−')+grp('Bills',rec.bills,'−');
+    const up=rec.upcoming||[];
+    if(up.length){$('s-upcoming').classList.remove('hidden');$('upcoming').classList.remove('hidden');
+      $('upcoming').innerHTML=up.map(u=>`<div class="row"><div class="rowL"><div class="ava">${u.direction==='inflow'?'💰':'📅'}</div><div class="t"><div class="m">${esc(u.name)}</div><div class="d">${esc(u.date)} · in ${u.days_until}d</div></div></div><div class="a" style="color:${u.direction==='inflow'?'var(--good)':'var(--text)'}">${u.direction==='inflow'?'+':'−'}${money(u.amount,u.currency)}</div></div>`).join('');}
+    else{$('s-upcoming').classList.add('hidden');$('upcoming').classList.add('hidden');}
+  }else{['s-recurring','recurring','s-upcoming','upcoming'].forEach(i=>$(i).classList.add('hidden'));}
   renderRecent('');
   const dt=new Date(d.generated_at);$('updated').textContent='Updated '+(isNaN(dt)?'':dt.toLocaleString());
 }
