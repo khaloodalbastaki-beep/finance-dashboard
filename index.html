@@ -114,6 +114,8 @@
     <section class="panel" id="p-accounts">
       <div class="hero"><div class="lbl">Net liquid</div><div class="big" id="acc-liquid">—</div></div>
       <h2 class="sec">All accounts</h2><div class="card" id="accounts"></div>
+      <h2 class="sec hidden" id="s-accsubs">My subscriptions <span class="tag" id="accsubs-total"></span></h2>
+      <div class="card hidden" id="accsubs"></div>
       <h2 class="sec hidden" id="s-inv">Investments <span class="tag" id="inv-val"></span></h2>
       <div class="card hidden" id="investments"></div>
     </section>
@@ -211,6 +213,14 @@ function render(d){
   if(d.count_needs_review>0){$('reviewBanner').textContent='⚠️ '+d.count_needs_review+' transaction(s) need review — fix in Telegram /review';$('reviewBanner').classList.remove('hidden');}
   $('home-accounts').innerHTML=accountRows(d);
   $('accounts').innerHTML=accountRows(d);
+  // my subscriptions on the Accounts tab — combined monthly total even if charged on different days
+  const rsubs=(d.recurring&&d.recurring.subscriptions)||[];
+  if(rsubs.length){
+    $('s-accsubs').classList.remove('hidden');$('accsubs').classList.remove('hidden');
+    const tot=rsubs.reduce((s,x)=>s+(x.monthly||x.amount||0),0);
+    $('accsubs-total').textContent=money(tot,c)+'/mo';
+    $('accsubs').innerHTML=rsubs.map(s=>`<div class="row"><div class="rowL"><div class="ava">🔁</div><div class="t"><div class="m">${esc(s.name)}</div><div class="d">${esc(s.cadence)} · due ${esc((s.next_due||'').slice(5))}${s.days_until_due<=0?' · ⚠️ due':''}</div></div></div><div class="a">${money(s.amount,s.currency)}</div></div>`).join('');
+  }else{$('s-accsubs').classList.add('hidden');$('accsubs').classList.add('hidden');}
   $('home-recent').innerHTML=txnRows((d.recent||[]).slice(0,6));
 
   // budgets
